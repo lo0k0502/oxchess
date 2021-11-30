@@ -12,51 +12,19 @@
 
 #define SIZE sizeof(struct sockaddr_in) 
 
-int play();
-int menu(void);
-void catcher(int sig);
 void mapBoard(char playBoard[][3]);
-void help(void);
 void playerWinhandler(int signum);
 int te=0;
 
-int main(void) {
-	while (1) {
-		/*get selection and execute the relevant statement*/
-		switch(menu()) {
-			case 1: {
-				printf("\nYou selected Play Option\n\n");
-				play();
-				break;
-			}
-			case 2: { 
-				printf("\nYou selected Help Option\n\n");
-				help();
-				break;
-			}
-			case 3: {
-				printf("\nYou are quitting\n\n"); 
-				exit(0);
-				break;
-			}
-			default: {
-				printf("\nInvalid menu choice\n\n");
-				break;
-			}
-		}
-	}
-}
+int main() {
+	// void result(char [],char []);
+	// static struct sigaction act; 
+	// act.sa_handler = SIG_IGN; 
+	// sigfillset(&(act.sa_mask));
+	// sigaction(SIGTSTP, &act, 0);
 
-int play(void) 
-{
-	void result(char [],char []);
-	static struct sigaction act; 
-	act.sa_handler = SIG_IGN; 
-	sigfillset(&(act.sa_mask)); 
-	sigaction(SIGTSTP, &act, 0);
-
-	signal(SIGUSR1,playerWinhandler);
-	signal(SIGUSR2,playerWinhandler);
+	signal(SIGUSR1, playerWinhandler);
+	signal(SIGUSR2, playerWinhandler);
 
 	struct sockaddr_in server = {AF_INET, 8001}; 
 	server.sin_addr.s_addr = inet_addr("127.0.0.1"); 
@@ -91,7 +59,7 @@ int play(void)
 
 	if (connect (sockfd, (struct sockaddr *)&server, SIZE) == -1) { 
 		perror("Connect Call Failed"); 
-		exit(1); 
+		exit(1);
 	} 
 	
 	read(sockfd,a,sizeof(a));
@@ -174,7 +142,7 @@ int play(void)
 			}
 		}
 
-		if (read(sockfd, clientRead, sizeof(clientRead)) >0) {
+		if (read(sockfd, clientRead, sizeof(clientRead)) > 0) {
 			system("clear");
 			memcpy(playBoard, clientRead, sizeof(playBoard));	// copy the contents of the array received from server side in playBoard array
 			mapBoard(playBoard);
@@ -199,33 +167,15 @@ int play(void)
 void mapBoard(char playBoard[][3]) {
         printf(" _________________\n");
         printf("|     |     |     | \n");
-        printf("|  %c  |  %c  |  %c  |\n",playBoard[0][0],playBoard[0][1],playBoard[0][2]);
+        printf("|  %c  |  %c  |  %c  |\n", playBoard[0][0], playBoard[0][1], playBoard[0][2]);
         printf("|_____|_____|_____|\n");
         printf("|     |     |     |\n");
-        printf("|  %c  |  %c  |  %c  |\n",playBoard[1][0],playBoard[1][1],playBoard[1][2]);
+        printf("|  %c  |  %c  |  %c  |\n", playBoard[1][0], playBoard[1][1], playBoard[1][2]);
         printf("|_____|_____|_____|\n");
         printf("|     |     |     |\n");
-        printf("|  %c  |  %c  |  %c  |\n",playBoard[2][0],playBoard[2][1],playBoard[2][2]);
+        printf("|  %c  |  %c  |  %c  |\n", playBoard[2][0], playBoard[2][1], playBoard[2][2]);
         printf("|_____|_____|_____|\n");
 		
-}
-
-void catcher(int sig) {
-	printf("Sorry...you can quit only after your chance is over! \n");
-}
-
-/*menu function*/
-int menu(void) {
-	int reply;
-
-	printf("Enter 1 to Play.\n\n");
-	printf("Enter 2 for Help.\n\n");
-	printf("Enter 3 to Quit.\n\n");
-
-	/*scan for user entry*/
-	scanf("%d", &reply);
-
-	return reply;
 }
 
 void playerWinhandler(int signum) {
@@ -236,8 +186,4 @@ void playerWinhandler(int signum) {
     if (signum == SIGUSR2) {
 		te=2;
     }
-}
-
-void help(void) {
-	printf("Tic-tac-toe, also called wick wack woe (in some Asian countries) and noughts and crosses (in the British Commonwealth countries) and X's and O's in the Republic of Ireland, is a pencil-and-paper game for two players, X and O, who take turns marking the spaces in a 3×3 grid. The player who succeeds in placing three respective marks in a horizontal, vertical, or diagonal row wins the game.\n\n");
 }
