@@ -20,8 +20,8 @@ int main(void)
 		status,
 		pid[2],
 		client_fds[2],
-		userCount=0,
-		ctr=1,
+		userCount = 0,
+		turnNumber = 1,
 		row = 0,
 		column = 0,
 		choice=0,
@@ -62,14 +62,14 @@ int main(void)
 	
 	printf("Waiting for Players to join in TicTacToe Club.. \n");
 
-	strcpy(writeBuffer[0],"Waiting for the other Player to join\n");
-
 	if (listen(server_fd, 5) == -1) {
 		perror("Listen Call Failed\n");
 		exit(1);
 	}
 
 	while (userCount < 2) {
+		printf("Number of Players who joined the game: %d\n", userCount);
+
 		client_fds[userCount] = accept(server_fd, (struct sockaddr *) &client_addr[userCount], &client_addr_len);
 
 		read(client_fds[userCount], readBuffer, sizeof(readBuffer));
@@ -80,6 +80,7 @@ int main(void)
 			}
 		}
 		if (i == 2) {
+			printf("No such user\n");
 			strcpy(writeBuffer[0], "No such user");
 			strcpy(writeBuffer[1], "0");
 			write(client_fds[userCount], writeBuffer, sizeof(writeBuffer));
@@ -88,12 +89,14 @@ int main(void)
 		read(client_fds[userCount], readBuffer, sizeof(readBuffer));
 		printf("Password: %s\n", readBuffer);
 		if (strcmp(readBuffer, users[i][1])) {
+			printf("Wrong password\n");
 			strcpy(writeBuffer[0], "Wrong password");
 			strcpy(writeBuffer[1], "0");
 			write(client_fds[userCount], writeBuffer, sizeof(writeBuffer));
 			continue;
 		}
 		if (!strcmp(users[i][2], "true")) {
+			printf("User logged in\n");
 			strcpy(writeBuffer[0], "User has logged in");
 			strcpy(writeBuffer[1], "0");
 			write(client_fds[userCount], writeBuffer, sizeof(writeBuffer));
@@ -101,52 +104,92 @@ int main(void)
 		}
 
 		users[i][2] = "true";
+
 		userCount++;
 
-		printf("Number of Players who joined the game: %d\n", userCount);
-
 		if (userCount == 1) {
-			strcpy(writeBuffer[1],"0");
+			strcpy(writeBuffer[0], "Logged in");
+			strcpy(writeBuffer[1], "0");
 			write(client_fds[0], writeBuffer, sizeof(writeBuffer));
+
 			read(client_fds[0], readBuffer, sizeof(readBuffer));
 			pid[0] = atoi(readBuffer);
+
+			read(client_fds[0], readBuffer, sizeof(readBuffer));
+			if (strcmp(readBuffer, "1")) {
+				printf("%s\n", readBuffer);
+				users[i][2] = "false";
+				userCount--;
+				continue;
+			}
+
+			strcpy(writeBuffer[0], "No other players right now...");
+			strcpy(writeBuffer[1], "0");
+			write(client_fds[0], writeBuffer, sizeof(writeBuffer));
 		}
 	
 		if (userCount == 2) {
-			strcpy(writeBuffer[0], "Let's play Tic Tac Toe!!");
-			strcpy(writeBuffer[1], "1");
-			write(client_fds[0], writeBuffer, sizeof(writeBuffer));
-			strcpy(writeBuffer[1], "2");
+			strcpy(writeBuffer[0], "Logged in");
+			strcpy(writeBuffer[1], "0");
 			write(client_fds[1], writeBuffer, sizeof(writeBuffer));
-
+			
 			read(client_fds[1], readBuffer, sizeof(readBuffer));
 			pid[1] = atoi(readBuffer);
+
+			read(client_fds[1], readBuffer, sizeof(readBuffer));
+			if (strcmp(readBuffer, "1")) {
+				printf("%s\n", readBuffer);
+				users[i][2] = "false";
+				userCount--;
+				continue;
+			}
+
+			strcpy(writeBuffer[0], "user1");
+			strcpy(writeBuffer[1], "0");
+			write(client_fds[1], writeBuffer, sizeof(writeBuffer));
+
+			strcpy(readBuffer, "");
+			read(client_fds[1], readBuffer, sizeof(readBuffer));
+
+			strcpy(writeBuffer[0], "User2 game request");
+			strcpy(writeBuffer[1], "0");
+			write(client_fds[0], writeBuffer, sizeof(writeBuffer));
+
+			strcpy(readBuffer, "");
+			read(client_fds[0], readBuffer, sizeof(readBuffer));
+			printf("%s\n", readBuffer);
+			if (!strncmp(readBuffer, "y", 1)) {
+				strcpy(writeBuffer[0], "Let's play Tic Tac Toe!!");
+				strcpy(writeBuffer[1], "1");
+				write(client_fds[0], writeBuffer, sizeof(writeBuffer));
+				strcpy(writeBuffer[1], "2");
+				write(client_fds[1], writeBuffer, sizeof(writeBuffer));
+			}
 		}
 	}
+
+	printf("Let's play Tic Tac Toe!!\n");
 	
-	if (fork() == 0) 
-	{
-		int count=0; 		
+	if (fork() == 0) {
+		int count = 0;
 		
-		while (count==0) 
-		{ 	
-		
-			read(client_fds[ctr], serverRead, sizeof(serverRead));			
+		while (count == 0) {
+			read(client_fds[turnNumber], serverRead, sizeof(serverRead));
 			choice = atoi(serverRead);
 			printf("Server side the Integer received is: %d\n",choice);
 			row = --choice/3;
-				column = choice%3;
-			playBoard[row][column] = (ctr==0)?'X':'O';
+			column = choice%3;
+			playBoard[row][column] = (turnNumber == 0) ? 'X' : 'O';
+
+			if(turnNumber == 1) {
+				turnNumber = 0;
+			} else {
+				turnNumber = 1;
+			}
 			
-			//check(playBoard);				
-			if(ctr == 1)
-				ctr = 0;
-			else
-				ctr = 1;
-			
-			write(client_fds[ctr],playBoard,sizeof(playBoard)); 
+			write(client_fds[turnNumber], playBoard, sizeof(playBoard));
 			if (check(playBoard, server_fd, pid)) {
-				break;
+				count++;
 			};
 		}
 
@@ -163,30 +206,34 @@ int check (char playBoard[][3], int server_fd, int pid[])
 	char key = ' ';
 
 	// Check Rows
-	for (i=0; i<3;i++)
-	if (playBoard [i][0] == playBoard [i][1] && playBoard [i][0] == playBoard [i][2] && playBoard [i][0] != ' ') key = playBoard [i][0];	
+	for (i = 0; i < 3; i++) {
+		if (playBoard[i][0] == playBoard[i][1] && playBoard[i][0] == playBoard[i][2] && playBoard[i][0] != ' ') key = playBoard[i][0];	
+	}
+
 	// check Columns
-	for (i=0; i<3;i++)
-	if (playBoard [0][i] == playBoard [1][i] && playBoard [0][i] == playBoard [2][i] && playBoard [0][i] != ' ') key = playBoard [0][i];
+	for (i = 0; i < 3; i++) {
+		if (playBoard [0][i] == playBoard [1][i] && playBoard[0][i] == playBoard[2][i] && playBoard[0][i] != ' ') key = playBoard[0][i];
+	}
+
 	// Check Diagonals
-	if (playBoard [0][0] == playBoard [1][1] && playBoard [1][1] == playBoard [2][2] && playBoard [1][1] != ' ') key = playBoard [1][1];
-	if (playBoard [0][2] == playBoard [1][1] && playBoard [1][1] == playBoard [2][0] && playBoard [1][1] != ' ') key = playBoard [1][1];
+	if (playBoard [0][0] == playBoard [1][1] && playBoard[1][1] == playBoard[2][2] && playBoard[1][1] != ' ') {
+		key = playBoard[1][1];
+	}
+	if (playBoard [0][2] == playBoard [1][1] && playBoard[1][1] == playBoard[2][0] && playBoard[1][1] != ' ') {
+		key = playBoard[1][1];
+	}
 
 	if (key == ' ') {
 		return 0;
 	}
 
-	close(server_fd);
-
-	if (key == 'X')
-	{
+	if (key == 'X') {
 		printf("Player 1 Wins\n\n");
 		kill(pid[0], SIGUSR1);
 		kill(pid[1], SIGUSR1);
 	}
 
-	if (key == 'O')
-	{
+	if (key == 'O') {
 		printf("Player 2 Wins\n\n");
 		kill(pid[0], SIGUSR2);
 		kill(pid[1], SIGUSR2);

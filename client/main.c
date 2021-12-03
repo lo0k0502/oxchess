@@ -16,6 +16,7 @@
 int play(char *username, char *password);
 void showBoard(char playBoard[][3]);
 void playerWinhandler(int signum);
+int menu();
 int pid;
 int te = 0;
 
@@ -50,11 +51,13 @@ int play(char *username, char *password)
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     server_addr.sin_port = htons(8001);
 
-	int sockfd,i; 
-	int row,column,choice;
+	int sockfd, i; 
+	int row, column, choice;
 	int iclientRead; 		
 	char input; 
 	char readBuffer[2][40];
+	char writeBuffer[10];
+	char buffer[10];
 	char pid[4];
 	char clientRead[3][3];
 	char clientWrite[1];
@@ -90,7 +93,6 @@ int play(char *username, char *password)
 	write(sockfd, password, sizeof(password));
 	
 	read(sockfd,readBuffer,sizeof(readBuffer));
-	printf("%s\n",readBuffer[0]);
 
 	if (!strcmp(readBuffer[1], "0")) {
 		if (!strcmp(readBuffer[0], "No such user")) {
@@ -104,18 +106,58 @@ int play(char *username, char *password)
 			exit(0);
 		} else {
 			int num1 = getpid();
-			sprintf(pid,"%d",num1);
+			sprintf(pid, "%d", num1);
 			write(sockfd, pid, sizeof(pid));
-			read(sockfd,readBuffer,sizeof(readBuffer));
-			printf("%s\n",readBuffer[0]);
+			printf("Logged In!!\n");
 		}
 	}
 
-	if (!strcmp(readBuffer[1], "2")) {
-		int num2 = getpid();
-		sprintf(pid,"%d",num2);
-		write(sockfd, pid, sizeof(pid));
+	for (i = 0;;) {
+		switch(menu()) {
+			case 1: {
+				i++;
+				strcpy(writeBuffer, "1");
+				write(sockfd, writeBuffer, sizeof(writeBuffer));
+				break;
+			}
+			case 2: {
+				printf("\nQuitting\n\n");
+				strcpy(writeBuffer, "2");
+				write(sockfd, writeBuffer, sizeof(writeBuffer));
+				exit(0);
+				break;
+			}
+			default: {
+				printf("\nInvalid choice\n\n");
+				break;
+			}
+		}
+		if (i) {
+			break;
+		}
 	}
+
+	read(sockfd, readBuffer, sizeof(readBuffer));
+	printf("Online Players:\n");
+	printf("%s\n", readBuffer[0]);
+	
+	if (!strcmp(readBuffer[0], "No other players right now...")) {
+		read(sockfd, readBuffer, sizeof(readBuffer));
+		printf("Accept? (y/n) ");
+		for (; strcmp(clientWrite, "y");) {
+			scanf("%s", clientWrite);
+		}
+		write(sockfd, "y", sizeof("y"));
+	} else {
+		printf("Please enter a user's name: ");
+		scanf("%s", buffer);
+		write(sockfd, buffer, sizeof(buffer));
+	}
+	printf("End\n");
+
+	read(sockfd, readBuffer, sizeof(readBuffer));
+	printf("Begin: %s\n", readBuffer[0]);
+	printf("Begin: %s\n", readBuffer[1]);
 	
 	if (strcmp(readBuffer[1], "1"))
 	{
@@ -124,9 +166,9 @@ int play(char *username, char *password)
 		for(;;)
 			{
 			printf("\nPlayer %d,Please enter the number of the square where you want to place your '%c': \n",
-				(strcmp(readBuffer[1], "1")==0) ? 1 : 2,
+				(strcmp(readBuffer[1], "1") == 0) ? 1 : 2,
 				(strcmp(readBuffer[1], "1") == 0) ? 'X' : 'O');
-			scanf("%s",clientWrite);
+			scanf("%s", clientWrite);
 
 			choice = atoi(clientWrite);
 			row = --choice/3;
@@ -140,7 +182,7 @@ int play(char *username, char *password)
 			}
 		}
 
-		write(sockfd, clientWrite, sizeof(clientWrite));	
+		write(sockfd, clientWrite, sizeof(clientWrite));
 		system("clear");
 		showBoard(playBoard);
 		printf("\nCurrent Play Board\n\n");
@@ -151,10 +193,18 @@ int play(char *username, char *password)
 			if (te == 0) {
 				showBoard(numberBoard);
 				printf("\n    Number Board\n\n");
-			}					
+			} else if (te == 1) {
+				printf("Player 1 Wins!!\n");
+				close(sockfd);
+				exit(0);
+			} else if (te == 2) {
+				printf("Player 2 Wins!!\n");
+				close(sockfd);
+				exit(0);
+			}
 			for(;;)
 			{	
-				if (te==0)
+				if (te == 0)
 				{
 					printf("\nPlayer %d, Now your turn .. Please enter the number of the square where you want to place your '%c': \n",(strcmp(readBuffer[1], "1")==0)?1:2,(strcmp(readBuffer[1], "1")==0)?'X':'O');
 					scanf("%s",clientWrite);
@@ -163,14 +213,20 @@ int play(char *username, char *password)
 					row = --choice/3;
 					column = choice%3;
 			
-					if(choice<0 || choice>9 || playBoard [row][column]>'9'|| playBoard [row][column]=='X' || playBoard [row][column]=='O')
+					if(choice < 0 || choice > 9 || playBoard[row][column] > '9' || playBoard[row][column] == 'X' || playBoard[row][column] == 'O') {
 						printf("Invalid Input. Please Enter again.\n\n");
-		
-					else
-					{
-						playBoard[row][column] = (strcmp(readBuffer[1], "1")==0)?'X':'O';
+					} else {
+						playBoard[row][column] = (!strcmp(readBuffer[1], "1")) ? 'X' : 'O';
 						break;
 					}
+				} else if (te == 1) {
+					printf("Player 1 Wins!!\n");
+					close(sockfd);
+					exit(0);
+				} else if (te == 2) {
+					printf("Player 2 Wins!!\n");
+					close(sockfd);
+					exit(0);
 				}
 			}	
 			
@@ -180,9 +236,11 @@ int play(char *username, char *password)
 			printf("\nCurrent Play Board\n\n");
 			if (te == 1) {
 				printf("Player 1 Wins!!\n");
+				close(sockfd);
 				exit(0);
 			} else if (te == 2) {
 				printf("Player 2 Wins!!\n");
+				close(sockfd);
 				exit(0);
    			}
 		}
@@ -195,10 +253,11 @@ int play(char *username, char *password)
 			input = '\n';
 			if (te == 1) {
 				printf("Player 1 Wins!!\n");
+				close(sockfd);
 				exit(0);
-			}
-   			if (te == 2) {
+			} else if (te == 2) {
 				printf("Player 2 Wins!!\n");
+				close(sockfd);
 				exit(0);
    			}
 		} else {
@@ -211,17 +270,16 @@ int play(char *username, char *password)
 
 void showBoard(char playBoard[][3])
 {
-        printf("                  \n");
+        printf("\n");
         printf("      |     |       \n");
-        printf("   %c  |  %c  |  %c   \n",playBoard[0][0],playBoard[0][1],playBoard[0][2]);
+        printf("   %c  |  %c  |  %c   \n", playBoard[0][0], playBoard[0][1], playBoard[0][2]);
         printf(" _____|_____|_____ \n");
         printf("      |     |      \n");
-        printf("   %c  |  %c  |  %c   \n",playBoard[1][0],playBoard[1][1],playBoard[1][2]);
+        printf("   %c  |  %c  |  %c   \n", playBoard[1][0], playBoard[1][1], playBoard[1][2]);
         printf(" _____|_____|_____ \n");
         printf("      |     |      \n");
-        printf("   %c  |  %c  |  %c   \n",playBoard[2][0],playBoard[2][1],playBoard[2][2]);
+        printf("   %c  |  %c  |  %c   \n", playBoard[2][0], playBoard[2][1], playBoard[2][2]);
         printf("      |     |      \n");
-		
 }
 
 void playerWinhandler(int signum) {
@@ -235,4 +293,15 @@ void playerWinhandler(int signum) {
 		printf("Player 2 Wins!!\n");
     }
 	kill(pid, 9);
+}
+
+int menu() {
+	int reply;
+
+	printf("Enter 1 to Select Player.\n\n");
+	printf("Enter 2 to Quit.\n\n");
+
+	scanf("%d", &reply);
+
+	return reply;
 }
