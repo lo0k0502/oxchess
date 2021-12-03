@@ -1,5 +1,3 @@
-							/*Tic Tac Toe Game by Ishan Ankita*/
-									/*Server*/ 
 #include <ctype.h> 
 #include <sys/types.h> 
 #include <sys/socket.h> 
@@ -12,12 +10,15 @@
 #include <sys/wait.h>
 #include <arpa/inet.h>
 
+#include "server_utility.h"
+#include "utility.h"
+
 int check (char playBoard[][3], int server_fd, int pid[]);
 
-int main(void) 
-{ 
+int main(int argc, char **argv) { 
 	int server_fd,
 		status,
+		port = 8001,
 		pid[2],
 		client_fds[2],
 		userCount = 0,
@@ -28,7 +29,7 @@ int main(void)
 		i,
 		flag;
 	char serverRead[1],
-		ans[1],
+		ans[1] = "",
 		readBuffer[10],
 		writeBuffer[2][40],
 		*users[2][3] = {
@@ -44,28 +45,14 @@ int main(void)
 	struct sockaddr_in server_addr, client_addr[2];
     socklen_t client_addr_len = sizeof(client_addr[0]);
 
-	strcpy(ans,"");
-
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) { 
 		perror("Socket Call Failed");
 		exit(1);
 	}
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    server_addr.sin_port = htons(8001);
+	serverBindandListen(server_fd, server_addr, port);
 
-	if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_in)) == -1) { 
-		perror("Bind Call Failed");
-		exit(1);
-	}
-	
-	printf("Waiting for Players to join in TicTacToe Club.. \n");
-
-	if (listen(server_fd, 5) == -1) {
-		perror("Listen Call Failed\n");
-		exit(1);
-	}
+	printf("Waiting for Players to join...\n");
 
 	while (userCount < 2) {
 		printf("Number of Players who joined the game: %d\n", userCount);

@@ -1,6 +1,3 @@
-							/*Tic Tac Toe Game by Ishan Ankita*/
-									/*Client*/ 
-
 #include <ctype.h> 
 #include <sys/types.h> 
 #include <sys/socket.h> 
@@ -13,86 +10,83 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-int play(char *username, char *password);
 void showBoard(char playBoard[][3]);
 void playerWinhandler(int signum);
 int menu();
 int pid;
 int te = 0;
 
-int main()
-{
+int main(int argc, char **argv) {
+	
+	printf("%d %s\n", argc, *argv);
+
 	char username[10], password[10];
 
 	printf("Please enter username: ");
 	scanf("%s", username);
 	printf("Please enter password: ");
 	scanf("%s", password);
-	
-	play(username, password);
-}
-
-int play(char *username, char *password)
-{
 	 
 	printf("Username: %s, Password: %s\n", username, password);
 
-	static struct sigaction act; 
-	act.sa_handler = SIG_IGN; 
-	sigfillset(&(act.sa_mask));
-	sigaction(SIGTSTP, &act, 0);
+	static struct sigaction action;
+	action.sa_handler = SIG_IGN;
+	sigfillset(&(action.sa_mask));
+	sigaction(SIGTSTP, &action, 0);
 
 	signal(SIGUSR1, playerWinhandler);
 	signal(SIGUSR2, playerWinhandler);
 
 	struct sockaddr_in server_addr;
+	int client_fd,
+		port = 8001,
+		row,
+		column,
+		choice,
+		i;
+	char input,
+		readBuffer[2][40],
+		writeBuffer[10],
+		buffer[10],
+		pid[4],
+		clientRead[3][3],
+		clientWrite[1],
+		numberBoard [3][3] = {
+			{'1','2','3'},
+			{'4','5','6'},
+			{'7','8','9'}
+		}, // to display positions to choose from
+		playBoard [3][3] = {
+			{' ',' ',' '},
+			{' ',' ',' '},
+			{' ',' ',' '}
+		}; // to display the actual game status
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    server_addr.sin_port = htons(8001);
-
-	int sockfd, i; 
-	int row, column, choice;
-	int iclientRead; 		
-	char input; 
-	char readBuffer[2][40];
-	char writeBuffer[10];
-	char buffer[10];
-	char pid[4];
-	char clientRead[3][3];
-	char clientWrite[1];
-	
-
-	char numberBoard [3][3] = {
-		{'1','2','3'},
-		{'4','5','6'},
-		{'7','8','9'}
-	}; // to display positions to choose from
-
-	char playBoard [3][3] = {
-		{' ',' ',' '},
-		{' ',' ',' '},
-		{' ',' ',' '}
-	}; // to display the actual game status
-
-
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	{
+	if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("Socket Call Failed");
 		exit(1);
 	}
 
-	if (connect (sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_in)) == -1) 
-	{ 
+	for (i = 0; i < argc; i++) {
+		if (!strcmp(argv[i], "-P") || !strcmp(argv[i], "--port")) {
+			port = atoi(argv[++i]);
+		}
+	}
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_port = htons(port);
+
+	if (connect(client_fd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_in)) == -1) { 
 		perror("Connect Call Failed");
 		exit(1);
 	}
 
-	write(sockfd, username, sizeof(username));
+	write(client_fd, username, sizeof(username));
 	sleep(1);
-	write(sockfd, password, sizeof(password));
+	write(client_fd, password, sizeof(password));
 	
-	read(sockfd,readBuffer,sizeof(readBuffer));
+	read(client_fd,readBuffer,sizeof(readBuffer));
 
 	if (!strcmp(readBuffer[1], "0")) {
 		if (!strcmp(readBuffer[0], "No such user")) {
@@ -107,7 +101,7 @@ int play(char *username, char *password)
 		} else {
 			int num1 = getpid();
 			sprintf(pid, "%d", num1);
-			write(sockfd, pid, sizeof(pid));
+			write(client_fd, pid, sizeof(pid));
 			printf("Logged In!!\n");
 		}
 	}
@@ -117,13 +111,13 @@ int play(char *username, char *password)
 			case 1: {
 				i++;
 				strcpy(writeBuffer, "1");
-				write(sockfd, writeBuffer, sizeof(writeBuffer));
+				write(client_fd, writeBuffer, sizeof(writeBuffer));
 				break;
 			}
 			case 2: {
 				printf("\nQuitting\n\n");
 				strcpy(writeBuffer, "2");
-				write(sockfd, writeBuffer, sizeof(writeBuffer));
+				write(client_fd, writeBuffer, sizeof(writeBuffer));
 				exit(0);
 				break;
 			}
@@ -137,27 +131,26 @@ int play(char *username, char *password)
 		}
 	}
 
-	read(sockfd, readBuffer, sizeof(readBuffer));
+	read(client_fd, readBuffer, sizeof(readBuffer));
 	printf("Online Players:\n");
 	printf("%s\n", readBuffer[0]);
 	
 	if (!strcmp(readBuffer[0], "No other players right now...")) {
-		read(sockfd, readBuffer, sizeof(readBuffer));
-		printf("Accept? (y/n) ");
+		read(client_fd, readBuffer, sizeof(readBuffer));
+		printf("Game request from user2! Accept? (y/n) ");
 		for (; strcmp(clientWrite, "y");) {
 			scanf("%s", clientWrite);
 		}
-		write(sockfd, "y", sizeof("y"));
+		write(client_fd, "y", sizeof("y"));
 	} else {
 		printf("Please enter a user's name: ");
 		scanf("%s", buffer);
-		write(sockfd, buffer, sizeof(buffer));
+		write(client_fd, buffer, sizeof(buffer));
+		printf("Waiting for response...\n");
 	}
-	printf("End\n");
 
-	read(sockfd, readBuffer, sizeof(readBuffer));
-	printf("Begin: %s\n", readBuffer[0]);
-	printf("Begin: %s\n", readBuffer[1]);
+	read(client_fd, readBuffer, sizeof(readBuffer));
+	printf("%s\n", readBuffer[0]);
 	
 	if (strcmp(readBuffer[1], "1"))
 	{
@@ -182,7 +175,7 @@ int play(char *username, char *password)
 			}
 		}
 
-		write(sockfd, clientWrite, sizeof(clientWrite));
+		write(client_fd, clientWrite, sizeof(clientWrite));
 		system("clear");
 		showBoard(playBoard);
 		printf("\nCurrent Play Board\n\n");
@@ -195,11 +188,11 @@ int play(char *username, char *password)
 				printf("\n    Number Board\n\n");
 			} else if (te == 1) {
 				printf("Player 1 Wins!!\n");
-				close(sockfd);
+				close(client_fd);
 				exit(0);
 			} else if (te == 2) {
 				printf("Player 2 Wins!!\n");
-				close(sockfd);
+				close(client_fd);
 				exit(0);
 			}
 			for(;;)
@@ -221,31 +214,31 @@ int play(char *username, char *password)
 					}
 				} else if (te == 1) {
 					printf("Player 1 Wins!!\n");
-					close(sockfd);
+					close(client_fd);
 					exit(0);
 				} else if (te == 2) {
 					printf("Player 2 Wins!!\n");
-					close(sockfd);
+					close(client_fd);
 					exit(0);
 				}
 			}	
 			
-			write(sockfd, clientWrite, sizeof(clientWrite));
+			write(client_fd, clientWrite, sizeof(clientWrite));
 			system("clear");
 			showBoard(playBoard);
 			printf("\nCurrent Play Board\n\n");
 			if (te == 1) {
 				printf("Player 1 Wins!!\n");
-				close(sockfd);
+				close(client_fd);
 				exit(0);
 			} else if (te == 2) {
 				printf("Player 2 Wins!!\n");
-				close(sockfd);
+				close(client_fd);
 				exit(0);
    			}
 		}
 
-		if (read(sockfd, clientRead, sizeof(clientRead)) > 0) {
+		if (read(client_fd, clientRead, sizeof(clientRead)) > 0) {
 			system("clear");
 			memcpy(playBoard, clientRead, sizeof(playBoard));	// copy the contents of the array received from server side in playBoard array
 			showBoard(playBoard);
@@ -253,16 +246,16 @@ int play(char *username, char *password)
 			input = '\n';
 			if (te == 1) {
 				printf("Player 1 Wins!!\n");
-				close(sockfd);
+				close(client_fd);
 				exit(0);
 			} else if (te == 2) {
 				printf("Player 2 Wins!!\n");
-				close(sockfd);
+				close(client_fd);
 				exit(0);
    			}
 		} else {
 			printf("You Win!! Thank You, Please Play Again :D\n");
-			close(sockfd);
+			close(client_fd);
 			exit(0);
 		}
 	}
@@ -285,14 +278,9 @@ void showBoard(char playBoard[][3])
 void playerWinhandler(int signum) {
     if (signum == SIGUSR1) {
         te = 1;
-		printf("Player 1 Wins!!\n");
-    }
-
-    if (signum == SIGUSR2) {
+    } else if (signum == SIGUSR2) {
 		te = 2;
-		printf("Player 2 Wins!!\n");
     }
-	kill(pid, 9);
 }
 
 int menu() {

@@ -2,9 +2,14 @@ FLAGS = -I includes
 
 SERVER_OBJS = \
 				server/main.o \
+				server/server_utility.o \
+				utils/utility.o \
 			
 CLIENT_OBJS = \
 				client/main.o \
+
+utils/%.o: utils/%.c
+	gcc $(FLAGS) -c $< -o $@
 
 server/%.o: server/%.c
 	gcc $(FLAGS) -c $< -o $@
