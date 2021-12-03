@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "compare": "c",
-        "exception": "c",
-        "limits": "c",
-        "type_traits": "c"
-    }
-}
