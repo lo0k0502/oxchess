@@ -13,7 +13,7 @@
 #include "server_utility.h"
 #include "utility.h"
 
-int check (char playBoard[][3], int server_fd, int pid[]);
+int check(char playBoard[][3], int pid[]);
 
 int main(int argc, char **argv) { 
 	int server_fd,
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
 	serverBindandListen(server_fd, server_addr, port);
 
-	printf("Waiting for Players to join...\n");
+	printString("Waiting for Players to join...");
 
 	while (userCount < 2) {
 		printf("Number of Players who joined the game: %d\n", userCount);
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		if (i == 2) {
-			printf("No such user\n");
+			printString("No such user");
 			strcpy(writeBuffer[0], "No such user");
 			strcpy(writeBuffer[1], "0");
 			write(client_fds[userCount], writeBuffer, sizeof(writeBuffer));
@@ -76,14 +76,14 @@ int main(int argc, char **argv) {
 		read(client_fds[userCount], readBuffer, sizeof(readBuffer));
 		printf("Password: %s\n", readBuffer);
 		if (strcmp(readBuffer, users[i][1])) {
-			printf("Wrong password\n");
+			printString("Wrong password");
 			strcpy(writeBuffer[0], "Wrong password");
 			strcpy(writeBuffer[1], "0");
 			write(client_fds[userCount], writeBuffer, sizeof(writeBuffer));
 			continue;
 		}
 		if (!strcmp(users[i][2], "true")) {
-			printf("User logged in\n");
+			printString("User logged in");
 			strcpy(writeBuffer[0], "User has logged in");
 			strcpy(writeBuffer[1], "0");
 			write(client_fds[userCount], writeBuffer, sizeof(writeBuffer));
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
 			read(client_fds[0], readBuffer, sizeof(readBuffer));
 			if (strcmp(readBuffer, "1")) {
-				printf("%s\n", readBuffer);
+				printString(readBuffer);
 				users[i][2] = "false";
 				userCount--;
 				continue;
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
 
 			read(client_fds[1], readBuffer, sizeof(readBuffer));
 			if (strcmp(readBuffer, "1")) {
-				printf("%s\n", readBuffer);
+				printString(readBuffer);
 				users[i][2] = "false";
 				userCount--;
 				continue;
@@ -144,9 +144,9 @@ int main(int argc, char **argv) {
 
 			strcpy(readBuffer, "");
 			read(client_fds[0], readBuffer, sizeof(readBuffer));
-			printf("%s\n", readBuffer);
+			printString(readBuffer);
 			if (!strncmp(readBuffer, "y", 1)) {
-				strcpy(writeBuffer[0], "Let's play Tic Tac Toe!!");
+				strcpy(writeBuffer[0], "Game start!!");
 				strcpy(writeBuffer[1], "1");
 				write(client_fds[0], writeBuffer, sizeof(writeBuffer));
 				strcpy(writeBuffer[1], "2");
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	printf("Let's play Tic Tac Toe!!\n");
+	printString("Game start!!");
 	
 	if (fork() == 0) {
 		int count = 0;
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
 		while (count == 0) {
 			read(client_fds[turnNumber], serverRead, sizeof(serverRead));
 			choice = atoi(serverRead);
-			printf("Server side the Integer received is: %d\n",choice);
+			printf("Server side the Integer received is: %d\n", choice);
 			row = --choice/3;
 			column = choice%3;
 			playBoard[row][column] = (turnNumber == 0) ? 'X' : 'O';
@@ -175,21 +175,21 @@ int main(int argc, char **argv) {
 			}
 			
 			write(client_fds[turnNumber], playBoard, sizeof(playBoard));
-			if (check(playBoard, server_fd, pid)) {
+			if (check(playBoard, pid)) {
 				count++;
 			};
 		}
 
 		close(client_fds[0]);
+		close(client_fds[1]);
 		exit (0);
 	}
 	wait(&status);
 	close(client_fds[1]);
 }
 
-int check (char playBoard[][3], int server_fd, int pid[])
-{
-	int i;
+int check (char playBoard[][3], int pid[]) {
+	int i, j, flag = 0;
 	char key = ' ';
 
 	// Check Rows
@@ -211,19 +211,28 @@ int check (char playBoard[][3], int server_fd, int pid[])
 	}
 
 	if (key == ' ') {
-		return 0;
+		for (i = 0; i < 3; i++) {
+			for (j = 0; j < 3; j++) {
+				if (playBoard[i][j] == ' ') {
+					flag++;
+					break;
+				}
+			}
+		}
+		
+		if (flag) {
+			return 0;
+		}
+
+		key = 'T';
 	}
 
 	if (key == 'X') {
-		printf("Player 1 Wins\n\n");
-		kill(pid[0], SIGUSR1);
-		kill(pid[1], SIGUSR1);
-	}
-
-	if (key == 'O') {
-		printf("Player 2 Wins\n\n");
-		kill(pid[0], SIGUSR2);
-		kill(pid[1], SIGUSR2);
+		printString("Player 1 Wins\n");
+	} else if (key == 'O') {
+		printString("Player 2 Wins\n");
+	} else if (key == 'T') {
+		printString("Tie\n");
 	}
 
 	return 1;

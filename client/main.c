@@ -10,32 +10,29 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+#include "utility.h"
+
 void showBoard(char playBoard[][3]);
-void playerWinhandler(int signum);
+void playerWinHandler(int signum);
 int menu();
+char check(char playBoard[][3]);
 int pid;
 int te = 0;
 
 int main(int argc, char **argv) {
-	
-	printf("%d %s\n", argc, *argv);
-
 	char username[10], password[10];
 
 	printf("Please enter username: ");
 	scanf("%s", username);
 	printf("Please enter password: ");
 	scanf("%s", password);
-	 
+
 	printf("Username: %s, Password: %s\n", username, password);
 
 	static struct sigaction action;
 	action.sa_handler = SIG_IGN;
 	sigfillset(&(action.sa_mask));
 	sigaction(SIGTSTP, &action, 0);
-
-	signal(SIGUSR1, playerWinhandler);
-	signal(SIGUSR2, playerWinhandler);
 
 	struct sockaddr_in server_addr;
 	int client_fd,
@@ -51,6 +48,7 @@ int main(int argc, char **argv) {
 		pid[4],
 		clientRead[3][3],
 		clientWrite[1],
+		c,
 		numberBoard [3][3] = {
 			{'1','2','3'},
 			{'4','5','6'},
@@ -77,7 +75,7 @@ int main(int argc, char **argv) {
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     server_addr.sin_port = htons(port);
 
-	if (connect(client_fd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_in)) == -1) { 
+	if (connect(client_fd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_in)) == -1) {
 		perror("Connect Call Failed");
 		exit(1);
 	}
@@ -90,19 +88,21 @@ int main(int argc, char **argv) {
 
 	if (!strcmp(readBuffer[1], "0")) {
 		if (!strcmp(readBuffer[0], "No such user")) {
-			printf("%s\n", readBuffer[0]);
+			printString(readBuffer[0]);
 			exit(0);
 		} else if (!strcmp(readBuffer[0], "Wrong password")) {
-			printf("%s\n", readBuffer[0]);
+			printString(readBuffer[0]);
 			exit(0);
 		} else if (!strcmp(readBuffer[0], "User has logged in")) {
-			printf("%s\n", readBuffer[0]);
+			printString(readBuffer[0]);
 			exit(0);
 		} else {
 			int num1 = getpid();
 			sprintf(pid, "%d", num1);
 			write(client_fd, pid, sizeof(pid));
-			printf("Logged In!!\n");
+			changePrintColor("bold-green");
+			printString("\nLogged In!!\n");
+			changePrintColor("white");
 		}
 	}
 
@@ -115,14 +115,14 @@ int main(int argc, char **argv) {
 				break;
 			}
 			case 2: {
-				printf("\nQuitting\n\n");
+				printString("\nQuitting\n");
 				strcpy(writeBuffer, "2");
 				write(client_fd, writeBuffer, sizeof(writeBuffer));
 				exit(0);
 				break;
 			}
 			default: {
-				printf("\nInvalid choice\n\n");
+				printString("\nInvalid choice\n");
 				break;
 			}
 		}
@@ -132,30 +132,38 @@ int main(int argc, char **argv) {
 	}
 
 	read(client_fd, readBuffer, sizeof(readBuffer));
-	printf("Online Players:\n");
-	printf("%s\n", readBuffer[0]);
+	changePrintColor("bold-cyan");
+	printString("\nOnline Players:");
+	changePrintColor("white");
+	printString(readBuffer[0]);
 	
 	if (!strcmp(readBuffer[0], "No other players right now...")) {
 		read(client_fd, readBuffer, sizeof(readBuffer));
-		printf("Game request from user2! Accept? (y/n) ");
-		for (; strcmp(clientWrite, "y");) {
-			scanf("%s", clientWrite);
+		printf("\nGame request from user2! Accept?");
+		changePrintColor("bold-cyan");
+		printf(" (y/n) ");
+		changePrintColor("white");
+		for (; c != 'y';) {
+			c = getch();
 		}
+		printString("yes");
 		write(client_fd, "y", sizeof("y"));
 	} else {
-		printf("Please enter a user's name: ");
+		printf("\nPlease enter a user's name to request a game: ");
 		scanf("%s", buffer);
 		write(client_fd, buffer, sizeof(buffer));
-		printf("Waiting for response...\n");
+		printString("Waiting for response...");
 	}
 
 	read(client_fd, readBuffer, sizeof(readBuffer));
-	printf("%s\n", readBuffer[0]);
+	changePrintColor("bold-yellow");
+	printString(readBuffer[0]);
+	changePrintColor("white");
 	
 	if (strcmp(readBuffer[1], "1"))
 	{
 		showBoard(numberBoard);	
-		printf("\n    Number Board\n\n");
+		printString("\n    Number Board\n");
 		for(;;)
 			{
 			printf("\nPlayer %d,Please enter the number of the square where you want to place your '%c': \n",
@@ -168,7 +176,7 @@ int main(int argc, char **argv) {
 			column = choice%3;
 		
 			if (choice < 0 || choice > 9 || playBoard[row][column] > '9'|| playBoard[row][column] == 'X' || playBoard[row][column] == 'O') {
-				printf("Invalid Input. Please Enter again.\n\n");
+				printString("Invalid Input. Please Enter again.\n");
 			} else {
 				playBoard[row][column] = (strcmp(readBuffer[1], "1") == 0) ? 'X' : 'O';					
 				break;
@@ -178,83 +186,55 @@ int main(int argc, char **argv) {
 		write(client_fd, clientWrite, sizeof(clientWrite));
 		system("clear");
 		showBoard(playBoard);
-		printf("\nCurrent Play Board\n\n");
+		printString("\nCurrent Play Board\n");
 	}
 
 	for (input = 'x';;) { 	
 		if (input == '\n') {
-			if (te == 0) {
-				showBoard(numberBoard);
-				printf("\n    Number Board\n\n");
-			} else if (te == 1) {
-				printf("Player 1 Wins!!\n");
-				close(client_fd);
-				exit(0);
-			} else if (te == 2) {
-				printf("Player 2 Wins!!\n");
-				close(client_fd);
-				exit(0);
-			}
+			showBoard(numberBoard);
+			printString("\n    Number Board\n");
+
 			for(;;)
-			{	
-				if (te == 0)
-				{
-					printf("\nPlayer %d, Now your turn .. Please enter the number of the square where you want to place your '%c': \n",(strcmp(readBuffer[1], "1")==0)?1:2,(strcmp(readBuffer[1], "1")==0)?'X':'O');
-					scanf("%s",clientWrite);
-			
-					choice = atoi(clientWrite);
-					row = --choice/3;
-					column = choice%3;
-			
-					if(choice < 0 || choice > 9 || playBoard[row][column] > '9' || playBoard[row][column] == 'X' || playBoard[row][column] == 'O') {
-						printf("Invalid Input. Please Enter again.\n\n");
-					} else {
-						playBoard[row][column] = (!strcmp(readBuffer[1], "1")) ? 'X' : 'O';
-						break;
-					}
-				} else if (te == 1) {
-					printf("Player 1 Wins!!\n");
-					close(client_fd);
-					exit(0);
-				} else if (te == 2) {
-					printf("Player 2 Wins!!\n");
-					close(client_fd);
-					exit(0);
+			{
+				printf("\nNow your turn .. Please enter the number of the square where you want to place your '%c': \n", (strcmp(readBuffer[1], "1")==0)?'X':'O');
+				scanf("%s", clientWrite);
+		
+				choice = atoi(clientWrite);
+				row = --choice/3;
+				column = choice%3;
+		
+				if(choice < 0 || choice > 9 || playBoard[row][column] > '9' || playBoard[row][column] == 'X' || playBoard[row][column] == 'O') {
+					printString("Invalid Input. Please Enter again.\n");
+				} else {
+					playBoard[row][column] = (!strcmp(readBuffer[1], "1")) ? 'X' : 'O';
+					break;
 				}
 			}	
 			
 			write(client_fd, clientWrite, sizeof(clientWrite));
 			system("clear");
 			showBoard(playBoard);
-			printf("\nCurrent Play Board\n\n");
-			if (te == 1) {
-				printf("Player 1 Wins!!\n");
-				close(client_fd);
-				exit(0);
-			} else if (te == 2) {
-				printf("Player 2 Wins!!\n");
-				close(client_fd);
-				exit(0);
-   			}
+			printString("\nCurrent Play Board\n");
 		}
 
 		if (read(client_fd, clientRead, sizeof(clientRead)) > 0) {
 			system("clear");
-			memcpy(playBoard, clientRead, sizeof(playBoard));	// copy the contents of the array received from server side in playBoard array
+			memcpy(playBoard, clientRead, sizeof(playBoard)); // copy the contents of the array received from server side in playBoard array
 			showBoard(playBoard);
-			printf("\nCurrent Play Board\n\n");
+			printString("\nCurrent Play Board\n");
 			input = '\n';
-			if (te == 1) {
-				printf("Player 1 Wins!!\n");
-				close(client_fd);
-				exit(0);
-			} else if (te == 2) {
-				printf("Player 2 Wins!!\n");
-				close(client_fd);
-				exit(0);
-   			}
-		} else {
-			printf("You Win!! Thank You, Please Play Again :D\n");
+		}
+
+		if (check(playBoard) == ((!strcmp(readBuffer[1], "1")) ? 'X' : 'O')) {
+			printString("You Win!! Thank You, Please Play Again :D");
+			close(client_fd);
+			exit(0);
+		} else if (check(playBoard) == ((!strcmp(readBuffer[1], "1")) ? 'O' : 'X')) {
+			printString("You lose... Thank You, Please Play Again :D");
+			close(client_fd);
+			exit(0);
+		} else if (check(playBoard) == 'T') {
+			printString("Tie!! Thank You, Please Play Again :D");
 			close(client_fd);
 			exit(0);
 		}
@@ -263,33 +243,65 @@ int main(int argc, char **argv) {
 
 void showBoard(char playBoard[][3])
 {
-        printf("\n");
-        printf("      |     |       \n");
+        printString("");
+        printString("      |     |       ");
         printf("   %c  |  %c  |  %c   \n", playBoard[0][0], playBoard[0][1], playBoard[0][2]);
-        printf(" _____|_____|_____ \n");
-        printf("      |     |      \n");
+        printString(" _____|_____|_____ ");
+        printString("      |     |      ");
         printf("   %c  |  %c  |  %c   \n", playBoard[1][0], playBoard[1][1], playBoard[1][2]);
-        printf(" _____|_____|_____ \n");
-        printf("      |     |      \n");
+        printString(" _____|_____|_____ ");
+        printString("      |     |      ");
         printf("   %c  |  %c  |  %c   \n", playBoard[2][0], playBoard[2][1], playBoard[2][2]);
-        printf("      |     |      \n");
-}
-
-void playerWinhandler(int signum) {
-    if (signum == SIGUSR1) {
-        te = 1;
-    } else if (signum == SIGUSR2) {
-		te = 2;
-    }
+        printString("      |     |      ");
 }
 
 int menu() {
 	int reply;
 
-	printf("Enter 1 to Select Player.\n\n");
-	printf("Enter 2 to Quit.\n\n");
+	printString("Enter 1 to Select Player.\n");
+	printString("Enter 2 to Quit.\n");
 
 	scanf("%d", &reply);
 
 	return reply;
+}
+
+char check (char playBoard[][3]){
+	int i, j, flag = 0;
+	char key = ' ';
+
+	// Check Rows
+	for (i = 0; i < 3; i++) {
+		if (playBoard[i][0] == playBoard[i][1] && playBoard[i][0] == playBoard[i][2] && playBoard[i][0] != ' ') key = playBoard[i][0];	
+	}
+
+	// check Columns
+	for (i = 0; i < 3; i++) {
+		if (playBoard [0][i] == playBoard [1][i] && playBoard[0][i] == playBoard[2][i] && playBoard[0][i] != ' ') key = playBoard[0][i];
+	}
+
+	// Check Diagonals
+	if (playBoard [0][0] == playBoard [1][1] && playBoard[1][1] == playBoard[2][2] && playBoard[1][1] != ' ') {
+		key = playBoard[1][1];
+	}
+	if (playBoard [0][2] == playBoard [1][1] && playBoard[1][1] == playBoard[2][0] && playBoard[1][1] != ' ') {
+		key = playBoard[1][1];
+	}
+
+	if (key == ' ') {
+		for (i = 0; i < 3; i++) {
+			for (j = 0; j < 3; j++) {
+				if (playBoard[i][j] == ' ') {
+					flag++;
+					break;
+				}
+			}
+		}
+		
+		if (!flag) {
+			key = 'T';
+		}
+	}
+
+	return key;
 }
