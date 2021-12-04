@@ -55,3 +55,53 @@ void serverBindandListen(int server_fd, struct sockaddr_in server_addr, int port
 
     printf("Server is listening on port %d\n", port);
 }
+
+int check (char playBoard[][3]) {
+	int i, j, flag = 0;
+	char key = ' ';
+
+	// Check Rows
+	for (i = 0; i < 3; i++) {
+		if (playBoard[i][0] == playBoard[i][1] && playBoard[i][0] == playBoard[i][2] && playBoard[i][0] != ' ') key = playBoard[i][0];	
+	}
+
+	// check Columns
+	for (i = 0; i < 3; i++) {
+		if (playBoard [0][i] == playBoard [1][i] && playBoard[0][i] == playBoard[2][i] && playBoard[0][i] != ' ') key = playBoard[0][i];
+	}
+
+	// Check Diagonals
+	if (playBoard [0][0] == playBoard [1][1] && playBoard[1][1] == playBoard[2][2] && playBoard[1][1] != ' ') {
+		key = playBoard[1][1];
+	}
+	if (playBoard [0][2] == playBoard [1][1] && playBoard[1][1] == playBoard[2][0] && playBoard[1][1] != ' ') {
+		key = playBoard[1][1];
+	}
+
+	if (key == ' ') {
+		for (i = 0; i < 3; i++) {
+			for (j = 0; j < 3; j++) {
+				if (playBoard[i][j] == ' ') {
+					flag++;
+					break;
+				}
+			}
+		}
+		
+		if (flag) {
+			return 0;
+		}
+
+		key = 'T';
+	}
+
+	if (key == 'X') {
+		printString("Player 1 Wins\n");
+	} else if (key == 'O') {
+		printString("Player 2 Wins\n");
+	} else if (key == 'T') {
+		printString("Tie\n");
+	}
+
+	return 1;
+}

@@ -1,8 +1,6 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-#include <stdio.h>
-
 void changePrintColor(char *color);
 void printSizet(size_t a);
 void printInt(int a);

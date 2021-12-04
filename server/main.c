@@ -13,8 +13,6 @@
 #include "server_utility.h"
 #include "utility.h"
 
-int check(char playBoard[][3], int pid[]);
-
 int main(int argc, char **argv) { 
 	int server_fd,
 		status,
@@ -25,7 +23,7 @@ int main(int argc, char **argv) {
 		turnNumber = 1,
 		row = 0,
 		column = 0,
-		choice=0,
+		choice = 0,
 		i,
 		flag;
 	char serverRead[1],
@@ -35,7 +33,7 @@ int main(int argc, char **argv) {
 		*users[2][3] = {
 			{ "user1", "12345", "false" },
 			{ "user2", "23456", "false" }
-		},
+		}, // users info
     	playBoard [3][3] = {
 			{' ',' ',' '},
 			{' ',' ',' '},
@@ -175,7 +173,7 @@ int main(int argc, char **argv) {
 			}
 			
 			write(client_fds[turnNumber], playBoard, sizeof(playBoard));
-			if (check(playBoard, pid)) {
+			if (check(playBoard)) {
 				count++;
 			};
 		}
@@ -186,54 +184,4 @@ int main(int argc, char **argv) {
 	}
 	wait(&status);
 	close(client_fds[1]);
-}
-
-int check (char playBoard[][3], int pid[]) {
-	int i, j, flag = 0;
-	char key = ' ';
-
-	// Check Rows
-	for (i = 0; i < 3; i++) {
-		if (playBoard[i][0] == playBoard[i][1] && playBoard[i][0] == playBoard[i][2] && playBoard[i][0] != ' ') key = playBoard[i][0];	
-	}
-
-	// check Columns
-	for (i = 0; i < 3; i++) {
-		if (playBoard [0][i] == playBoard [1][i] && playBoard[0][i] == playBoard[2][i] && playBoard[0][i] != ' ') key = playBoard[0][i];
-	}
-
-	// Check Diagonals
-	if (playBoard [0][0] == playBoard [1][1] && playBoard[1][1] == playBoard[2][2] && playBoard[1][1] != ' ') {
-		key = playBoard[1][1];
-	}
-	if (playBoard [0][2] == playBoard [1][1] && playBoard[1][1] == playBoard[2][0] && playBoard[1][1] != ' ') {
-		key = playBoard[1][1];
-	}
-
-	if (key == ' ') {
-		for (i = 0; i < 3; i++) {
-			for (j = 0; j < 3; j++) {
-				if (playBoard[i][j] == ' ') {
-					flag++;
-					break;
-				}
-			}
-		}
-		
-		if (flag) {
-			return 0;
-		}
-
-		key = 'T';
-	}
-
-	if (key == 'X') {
-		printString("Player 1 Wins\n");
-	} else if (key == 'O') {
-		printString("Player 2 Wins\n");
-	} else if (key == 'T') {
-		printString("Tie\n");
-	}
-
-	return 1;
 }

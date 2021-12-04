@@ -7,7 +7,8 @@ SERVER_OBJS = \
 			
 CLIENT_OBJS = \
 				client/main.o \
-				utils/utility.o
+				client/client_utility.o \
+				utils/utility.o \
 
 utils/%.o: utils/%.c
 	gcc $(FLAGS) -c $< -o $@

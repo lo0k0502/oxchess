@@ -10,14 +10,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+#include "client_utility.h"
 #include "utility.h"
-
-void showBoard(char playBoard[][3]);
-void playerWinHandler(int signum);
-int menu();
-char check(char playBoard[][3]);
-int pid;
-int te = 0;
 
 int main(int argc, char **argv) {
 	char username[10], password[10];
@@ -166,14 +160,12 @@ int main(int argc, char **argv) {
 		printString("\n    Number Board\n");
 		for(;;)
 			{
-			printf("\nPlayer %d,Please enter the number of the square where you want to place your '%c': \n",
-				(strcmp(readBuffer[1], "1") == 0) ? 1 : 2,
-				(strcmp(readBuffer[1], "1") == 0) ? 'X' : 'O');
+			printf("\nPlease enter the number of the square where you want to place your '%c': \n", (strcmp(readBuffer[1], "1") == 0) ? 'X' : 'O');
 			scanf("%s", clientWrite);
 
 			choice = atoi(clientWrite);
-			row = --choice/3;
-			column = choice%3;
+			row = --choice / 3;
+			column = choice % 3;
 		
 			if (choice < 0 || choice > 9 || playBoard[row][column] > '9'|| playBoard[row][column] == 'X' || playBoard[row][column] == 'O') {
 				printString("Invalid Input. Please Enter again.\n");
@@ -194,9 +186,8 @@ int main(int argc, char **argv) {
 			showBoard(numberBoard);
 			printString("\n    Number Board\n");
 
-			for(;;)
-			{
-				printf("\nNow your turn .. Please enter the number of the square where you want to place your '%c': \n", (strcmp(readBuffer[1], "1")==0)?'X':'O');
+			for (;;) {
+				printf("\nNow your turn .. Please enter the number of the square where you want to place your '%c': \n", (strcmp(readBuffer[1], "1") == 0) ? 'X' : 'O');
 				scanf("%s", clientWrite);
 		
 				choice = atoi(clientWrite);
@@ -226,82 +217,17 @@ int main(int argc, char **argv) {
 		}
 
 		if (check(playBoard) == ((!strcmp(readBuffer[1], "1")) ? 'X' : 'O')) {
-			printString("You Win!! Thank You, Please Play Again :D");
+			printString("You Win!! Thank You for playing!!");
 			close(client_fd);
 			exit(0);
 		} else if (check(playBoard) == ((!strcmp(readBuffer[1], "1")) ? 'O' : 'X')) {
-			printString("You lose... Thank You, Please Play Again :D");
+			printString("You lose... Thank You for playing!!");
 			close(client_fd);
 			exit(0);
 		} else if (check(playBoard) == 'T') {
-			printString("Tie!! Thank You, Please Play Again :D");
+			printString("Tie!! Thank You for playing!!");
 			close(client_fd);
 			exit(0);
 		}
 	}
-}
-
-void showBoard(char playBoard[][3])
-{
-        printString("");
-        printString("      |     |       ");
-        printf("   %c  |  %c  |  %c   \n", playBoard[0][0], playBoard[0][1], playBoard[0][2]);
-        printString(" _____|_____|_____ ");
-        printString("      |     |      ");
-        printf("   %c  |  %c  |  %c   \n", playBoard[1][0], playBoard[1][1], playBoard[1][2]);
-        printString(" _____|_____|_____ ");
-        printString("      |     |      ");
-        printf("   %c  |  %c  |  %c   \n", playBoard[2][0], playBoard[2][1], playBoard[2][2]);
-        printString("      |     |      ");
-}
-
-int menu() {
-	int reply;
-
-	printString("Enter 1 to Select Player.\n");
-	printString("Enter 2 to Quit.\n");
-
-	scanf("%d", &reply);
-
-	return reply;
-}
-
-char check (char playBoard[][3]){
-	int i, j, flag = 0;
-	char key = ' ';
-
-	// Check Rows
-	for (i = 0; i < 3; i++) {
-		if (playBoard[i][0] == playBoard[i][1] && playBoard[i][0] == playBoard[i][2] && playBoard[i][0] != ' ') key = playBoard[i][0];	
-	}
-
-	// check Columns
-	for (i = 0; i < 3; i++) {
-		if (playBoard [0][i] == playBoard [1][i] && playBoard[0][i] == playBoard[2][i] && playBoard[0][i] != ' ') key = playBoard[0][i];
-	}
-
-	// Check Diagonals
-	if (playBoard [0][0] == playBoard [1][1] && playBoard[1][1] == playBoard[2][2] && playBoard[1][1] != ' ') {
-		key = playBoard[1][1];
-	}
-	if (playBoard [0][2] == playBoard [1][1] && playBoard[1][1] == playBoard[2][0] && playBoard[1][1] != ' ') {
-		key = playBoard[1][1];
-	}
-
-	if (key == ' ') {
-		for (i = 0; i < 3; i++) {
-			for (j = 0; j < 3; j++) {
-				if (playBoard[i][j] == ' ') {
-					flag++;
-					break;
-				}
-			}
-		}
-		
-		if (!flag) {
-			key = 'T';
-		}
-	}
-
-	return key;
 }
