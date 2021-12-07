@@ -89,7 +89,6 @@ int main(int argc, char **argv) {
 		}
 
 		users[i][2] = "true";
-
 		userCount++;
 
 		if (userCount == 1) {
@@ -100,24 +99,26 @@ int main(int argc, char **argv) {
 			read(client_fds[0], readBuffer, sizeof(readBuffer));
 			pid[0] = atoi(readBuffer);
 
-			read(client_fds[0], readBuffer, sizeof(readBuffer));
-			if (strcmp(readBuffer, "1")) {
-				printString(readBuffer);
-				users[i][2] = "false";
-				userCount--;
-				continue;
-			}
+			if (!fork()) {
+				read(client_fds[0], readBuffer, sizeof(readBuffer));
+				if (strcmp(readBuffer, "1")) {
+					printString(readBuffer);
+					users[i][2] = "false";
+					userCount--;
+					continue;
+				}
 
-			strcpy(writeBuffer[0], "No other players right now...");
-			strcpy(writeBuffer[1], "0");
-			write(client_fds[0], writeBuffer, sizeof(writeBuffer));
+				strcpy(writeBuffer[0], onlinePlayers(users, users[i][0]));
+				strcpy(writeBuffer[1], "0");
+				write(client_fds[0], writeBuffer, sizeof(writeBuffer));
+			}
 		}
-	
+
 		if (userCount == 2) {
 			strcpy(writeBuffer[0], "Logged in");
 			strcpy(writeBuffer[1], "0");
 			write(client_fds[1], writeBuffer, sizeof(writeBuffer));
-			
+
 			read(client_fds[1], readBuffer, sizeof(readBuffer));
 			pid[1] = atoi(readBuffer);
 
@@ -129,7 +130,7 @@ int main(int argc, char **argv) {
 				continue;
 			}
 
-			strcpy(writeBuffer[0], "user1");
+			strcpy(writeBuffer[0], onlinePlayers(users, users[i][0]));
 			strcpy(writeBuffer[1], "0");
 			write(client_fds[1], writeBuffer, sizeof(writeBuffer));
 
@@ -156,9 +157,7 @@ int main(int argc, char **argv) {
 	printString("Game start!!");
 	
 	if (fork() == 0) {
-		int count = 0;
-		
-		while (count == 0) {
+		for (;;) {
 			read(client_fds[turnNumber], serverRead, sizeof(serverRead));
 			choice = atoi(serverRead);
 			printf("Server side the Integer received is: %d\n", choice);
@@ -174,7 +173,7 @@ int main(int argc, char **argv) {
 			
 			write(client_fds[turnNumber], playBoard, sizeof(playBoard));
 			if (check(playBoard)) {
-				count++;
+				break;
 			};
 		}
 
@@ -183,5 +182,4 @@ int main(int argc, char **argv) {
 		exit (0);
 	}
 	wait(&status);
-	close(client_fds[1]);
 }

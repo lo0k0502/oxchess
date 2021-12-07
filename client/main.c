@@ -35,8 +35,7 @@ int main(int argc, char **argv) {
 		column,
 		choice,
 		i;
-	char input,
-		readBuffer[2][40],
+	char readBuffer[2][40],
 		writeBuffer[10],
 		buffer[10],
 		pid[4],
@@ -181,8 +180,8 @@ int main(int argc, char **argv) {
 		printString("\nCurrent Play Board\n");
 	}
 
-	for (input = 'x';;) { 	
-		if (input == '\n') {
+	for (i = 0;;) { 	
+		if (i) {
 			showBoard(numberBoard);
 			printString("\n    Number Board\n");
 
@@ -213,7 +212,7 @@ int main(int argc, char **argv) {
 			memcpy(playBoard, clientRead, sizeof(playBoard)); // copy the contents of the array received from server side in playBoard array
 			showBoard(playBoard);
 			printString("\nCurrent Play Board\n");
-			input = '\n';
+			i++;
 		}
 
 		if (check(playBoard) == ((!strcmp(readBuffer[1], "1")) ? 'X' : 'O')) {

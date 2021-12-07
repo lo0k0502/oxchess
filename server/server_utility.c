@@ -1,6 +1,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <arpa/inet.h>
@@ -104,4 +105,24 @@ int check (char playBoard[][3]) {
 	}
 
 	return 1;
+}
+
+char *onlinePlayers(char *users[2][3], char *currentPlayer) {
+	int i, j;
+    char *result = malloc(sizeof(char) * 50);
+
+	if (strcmp(currentPlayer, users[0][0]) && strcmp(users[0][2], "false")) {
+		strcat(result, users[0][0]);
+	}
+	if (strcmp(currentPlayer, users[1][0]) && strcmp(users[1][2], "false")) {
+		if (!strcmp(result, "")) {
+			strcat(result, " ");
+		}
+		strcat(result, users[1][0]);
+	}
+	if (!strcmp(result, "")) {
+		strcat(result, "No other players right now...");
+	}
+
+	return result;
 }
