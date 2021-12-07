@@ -99,19 +99,17 @@ int main(int argc, char **argv) {
 			read(client_fds[0], readBuffer, sizeof(readBuffer));
 			pid[0] = atoi(readBuffer);
 
-			if (!fork()) {
-				read(client_fds[0], readBuffer, sizeof(readBuffer));
-				if (strcmp(readBuffer, "1")) {
-					printString(readBuffer);
-					users[i][2] = "false";
-					userCount--;
-					continue;
-				}
-
-				strcpy(writeBuffer[0], onlinePlayers(users, users[i][0]));
-				strcpy(writeBuffer[1], "0");
-				write(client_fds[0], writeBuffer, sizeof(writeBuffer));
+			read(client_fds[0], readBuffer, sizeof(readBuffer));
+			if (strcmp(readBuffer, "1")) {
+				printString(readBuffer);
+				users[i][2] = "false";
+				userCount--;
+				continue;
 			}
+
+			strcpy(writeBuffer[0], onlinePlayers(users, users[i][0]));
+			strcpy(writeBuffer[1], "0");
+			write(client_fds[0], writeBuffer, sizeof(writeBuffer));
 		}
 
 		if (userCount == 2) {
@@ -157,7 +155,8 @@ int main(int argc, char **argv) {
 	printString("Game start!!");
 	
 	if (fork() == 0) {
-		for (;;) {
+		int count = 0;
+		for (;count == 0;) {
 			read(client_fds[turnNumber], serverRead, sizeof(serverRead));
 			choice = atoi(serverRead);
 			printf("Server side the Integer received is: %d\n", choice);
@@ -173,13 +172,15 @@ int main(int argc, char **argv) {
 			
 			write(client_fds[turnNumber], playBoard, sizeof(playBoard));
 			if (check(playBoard)) {
-				break;
+				count++;
+				// break;
 			};
 		}
 
 		close(client_fds[0]);
-		close(client_fds[1]);
 		exit (0);
 	}
 	wait(&status);
+	close(client_fds[1]);
+	close(server_fd);
 }
